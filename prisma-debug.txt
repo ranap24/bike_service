@@ -1,0 +1,9 @@
+cwd=/Users/ranaprathapreddy/Desktop/bikeservice
+envFile=/Users/ranaprathapreddy/Desktop/bikeservice/.env exists=true
+envLocalFile=/Users/ranaprathapreddy/Desktop/bikeservice/.env.local exists=true
+process.env.DATABASE_URL=UNDEFINED
+/Users/ranaprathapreddy/Desktop/bikeservice/.env content length=289
+match=YES value_len=147
+/Users/ranaprathapreddy/Desktop/bikeservice/.env.local content length=839
+match=NO
+parsedUrl=SET len=147

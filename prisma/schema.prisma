@@ -1,0 +1,200 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum UserRole {
+  RIDER
+  CAPTAIN
+  ADMIN
+}
+
+enum RideStatus {
+  REQUESTED
+  ACCEPTED
+  CAPTAIN_ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum VehicleType {
+  BIKE
+  AUTO
+  CAR
+}
+
+// ─── Models ──────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name     String
+  email    String   @unique
+  phone    String?  @unique
+  password String
+  role     UserRole @default(RIDER)
+  avatar   String?
+
+  isActive        Boolean @default(true)
+  isEmailVerified Boolean @default(false)
+
+  rides    Ride[]    @relation("RiderRides")
+  ratings  Rating[]  @relation("UserRatings")
+  payments Payment[]
+
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Captain {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name     String
+  email    String  @unique
+  phone    String  @unique
+  password String
+  avatar   String?
+
+  isActive   Boolean @default(true)
+  isOnline   Boolean @default(false)
+  isVerified Boolean @default(false)
+
+  vehicleType         VehicleType
+  vehiclePlate        String      @unique
+  vehicleModel        String
+  vehicleColor        String
+
+  currentLatitude  Float?
+  currentLongitude Float?
+
+  rating Float @default(0)
+  totalRides Int @default(0)
+
+  rides   Ride[]   @relation("CaptainRides")
+  ratings Rating[] @relation("CaptainRatings")
+
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+  @@index([isOnline])
+  @@index([isVerified])
+}
+
+model Ride {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  riderId   String
+  captainId String?
+
+  rider   User     @relation("RiderRides", fields: [riderId], references: [id])
+  captain Captain? @relation("CaptainRides", fields: [captainId], references: [id])
+
+  pickupAddress    String
+  pickupLatitude   Float
+  pickupLongitude  Float
+
+  dropAddress   String
+  dropLatitude  Float
+  dropLongitude Float
+
+  status   RideStatus @default(REQUESTED)
+  fare     Float
+  distance Float // in km
+  duration Int   // in minutes
+
+  otp String?
+
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  payment Payment?
+  rating  Rating?
+
+  @@index([riderId])
+  @@index([captainId])
+  @@index([status])
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rideId String @unique
+  userId String
+
+  user    User @relation(fields: [userId], references: [id])
+  rideRef Ride @relation(fields: [rideId], references: [id])
+
+  amount   Float
+  currency String        @default("INR")
+  status   PaymentStatus @default(PENDING)
+
+  stripePaymentIntentId String?
+  razorpayOrderId       String?
+  razorpayPaymentId     String?
+
+  paidAt DateTime?
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Rating {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rideId    String  @unique
+  userId    String
+  captainId String
+
+  ride    Ride    @relation(fields: [rideId], references: [id])
+  user    User    @relation("UserRatings", fields: [userId], references: [id])
+  captain Captain @relation("CaptainRatings", fields: [captainId], references: [id])
+
+  riderRating   Float?
+  captainRating Float?
+  riderComment  String?
+  captainComment String?
+
+  @@index([captainId])
+  @@index([userId])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  token     String   @unique
+  expiresAt DateTime
+
+  userId    String?
+  captainId String?
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  captain Captain? @relation(fields: [captainId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+}
